@@ -3,6 +3,7 @@ package archtest
 import (
 	"fmt"
 	"go/build"
+	"strings"
 )
 
 type PackageTest struct {
@@ -20,24 +21,41 @@ func Package(t TestingT, packageName string) *PackageTest {
 
 func (p *PackageTest) ShouldNotDependOn(d string) {
 	for i := range findDeps(p.packageName) {
-		if i == d {
-			p.t.Error("blah")
+		if i.name == d {
+			chain, _ := i.chain()
+			msg := fmt.Sprintf("Error:\n%s", chain)
+			p.t.Error(msg)
 		}
 	}
 }
 
-func findDeps(packageName string) <-chan string {
-	c := make(chan string)
+type dep struct {
+	name   string
+	parent *dep
+}
+
+func (d *dep) chain() (string, int) {
+	if d.parent == nil {
+		return d.name + "\n", 1
+	}
+
+	c, tabs := d.parent.chain()
+
+	return c + strings.Repeat("\t", tabs) + d.name + "\n", tabs + 1
+}
+
+func findDeps(packageName string) <-chan *dep {
+	c := make(chan *dep)
 	go func() {
 		defer close(c)
 
 		importCache := make(map[string]struct{})
-		read(c, packageName, importCache)
+		read(c, &dep{packageName, nil}, packageName, importCache)
 	}()
 	return c
 }
 
-func read(packages chan string, name string, importCache map[string]struct{}) {
+func read(packages chan *dep, parent *dep, name string, importCache map[string]struct{}) {
 	context := build.Default
 	var importMode build.ImportMode
 
@@ -57,10 +75,10 @@ func read(packages chan string, name string, importCache map[string]struct{}) {
 	}
 
 	for _, i := range newImports {
-		packages <- i
+		packages <- &dep{i, parent}
 	}
 
 	for _, i := range newImports {
-		read(packages, i, importCache)
+		read(packages, &dep{i, parent}, i, importCache)
 	}
 }

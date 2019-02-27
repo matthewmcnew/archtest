@@ -16,6 +16,11 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 		if !mockT.errored() {
 			t.Error("archtest did not fail on dependency")
 		}
+
+		expected := "Error:\ngithub.com/mattmcnew/archtest/testdata/testpackage\n	github.com/mattmcnew/archtest/testdata/dependency\n"
+		if mockT.message() != expected {
+			t.Errorf("expected %s got error message: %s", expected, mockT.message())
+		}
 	})
 
 	t.Run("Fails on transative dependencies", func(t *testing.T) {
@@ -27,6 +32,12 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 		if !mockT.errored() {
 			t.Error("archtest did not fail on dependency")
 		}
+
+		expected := "Error:\ngithub.com/mattmcnew/archtest/testdata/testpackage\n	github.com/mattmcnew/archtest/testdata/dependency\n		github.com/mattmcnew/archtest/testdata/transative\n"
+		if mockT.message() != expected {
+			t.Errorf("expected %s got error message: %s", expected, mockT.message())
+		}
+
 	})
 
 	t.Run("Succeeds on non dependencies", func(t *testing.T) {
@@ -56,4 +67,8 @@ func (t testingT) errored() bool {
 
 	return false
 
+}
+
+func (t *testingT) message() interface{} {
+	return t.errors[0][0]
 }
