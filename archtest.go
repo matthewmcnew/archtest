@@ -3,24 +3,25 @@ package archtest
 import (
 	"fmt"
 	"go/build"
+	"golang.org/x/tools/go/packages"
 	"strings"
 )
 
 type PackageTest struct {
-	packageName string
-	t           TestingT
+	packages []string
+	t        TestingT
 }
 
 type TestingT interface {
 	Error(args ...interface{})
 }
 
-func Package(t TestingT, packageName string) *PackageTest {
+func Package(t TestingT, packageName ...string) *PackageTest {
 	return &PackageTest{packageName, t}
 }
 
 func (p *PackageTest) ShouldNotDependOn(d string) {
-	for i := range findDeps(p.packageName) {
+	for i := range findDeps(p.packages) {
 		if i.name == d {
 			chain, _ := i.chain()
 			msg := fmt.Sprintf("Error:\n%s", chain)
@@ -44,13 +45,16 @@ func (d *dep) chain() (string, int) {
 	return c + strings.Repeat("\t", tabs) + d.name + "\n", tabs + 1
 }
 
-func findDeps(packageName string) <-chan *dep {
+func findDeps(packages []string) <-chan *dep {
 	c := make(chan *dep)
 	go func() {
 		defer close(c)
 
 		importCache := make(map[string]struct{})
-		read(c, &dep{packageName, nil}, packageName, importCache)
+		for _, p := range expand(packages) {
+
+			read(c, &dep{p, nil}, p, importCache)
+		}
 	}()
 	return c
 }
@@ -81,4 +85,26 @@ func read(packages chan *dep, parent *dep, name string, importCache map[string]s
 	for _, i := range newImports {
 		read(packages, &dep{i, parent}, i, importCache)
 	}
+}
+
+func expand(ps []string) []string {
+	cfg := &packages.Config{
+		Mode:       packages.LoadFiles,
+		Tests:      true,
+		BuildFlags: []string{},
+	}
+
+	loadedPs, err := packages.Load(cfg, ps...)
+	if err != nil {
+		fmt.Printf("error: %+v", err)
+		return nil
+	}
+
+	ls := make([]string, 0, len(loadedPs))
+
+	for _, p := range loadedPs {
+		ls = append(ls, p.PkgPath)
+	}
+
+	return ls
 }

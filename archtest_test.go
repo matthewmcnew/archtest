@@ -6,18 +6,17 @@ import (
 )
 
 func TestPackage_ShouldNotDependOn(t *testing.T) {
-
 	t.Run("Fails on dependencies", func(t *testing.T) {
 		mockT := new(testingT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/testdata/testpackage").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/testdata/dependency")
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
 
 		if !mockT.errored() {
-			t.Error("archtest did not fail on dependency")
+			t.Fatal("archtest did not fail on dependency")
 		}
 
-		expected := "Error:\ngithub.com/mattmcnew/archtest/testdata/testpackage\n	github.com/mattmcnew/archtest/testdata/dependency\n"
+		expected := "Error:\ngithub.com/mattmcnew/archtest/examples/testpackage\n	github.com/mattmcnew/archtest/examples/dependency\n"
 		if mockT.message() != expected {
 			t.Errorf("expected %s got error message: %s", expected, mockT.message())
 		}
@@ -26,28 +25,67 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 	t.Run("Fails on transative dependencies", func(t *testing.T) {
 		mockT := new(testingT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/testdata/testpackage").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/testdata/transative")
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/transative")
 
 		if !mockT.errored() {
-			t.Error("archtest did not fail on dependency")
+			t.Fatal("archtest did not fail on dependency")
 		}
 
-		expected := "Error:\ngithub.com/mattmcnew/archtest/testdata/testpackage\n	github.com/mattmcnew/archtest/testdata/dependency\n		github.com/mattmcnew/archtest/testdata/transative\n"
+		expected := "Error:\ngithub.com/mattmcnew/archtest/examples/testpackage\n	github.com/mattmcnew/archtest/examples/dependency\n		github.com/mattmcnew/archtest/examples/transative\n"
 		if mockT.message() != expected {
 			t.Errorf("expected %s got error message: %s", expected, mockT.message())
 		}
 
 	})
 
+	t.Run("Supports multiple packages", func(t *testing.T) {
+		mockT := new(testingT)
+
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/dontdependonanything", "github.com/mattmcnew/archtest/examples/testpackage").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+
+		if !mockT.errored() {
+			t.Fatal("archtest did not fail on dependency")
+		}
+
+		expected := "Error:\ngithub.com/mattmcnew/archtest/examples/testpackage\n	github.com/mattmcnew/archtest/examples/dependency\n"
+		if mockT.message() != expected {
+			t.Fatalf("expected %s got error message: %s", expected, mockT.message())
+		}
+	})
+
+	t.Run("Supports wildcard matching", func(t *testing.T) {
+		mockT := new(testingT)
+
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/...").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nodependency")
+
+		if mockT.errored() {
+			t.Fatalf("archtest with a wildcard should not have failed on %s", "github.com/mattmcnew/archtest/examples/nodependency")
+		}
+
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/...").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nesteddependency")
+
+		if !mockT.errored() {
+			t.Fatal("archtest did not fail on dependency")
+		}
+
+		expected := "Error:\ngithub.com/mattmcnew/archtest/examples/testpackage/nested/dep\n	github.com/mattmcnew/archtest/examples/nesteddependency\n"
+		if mockT.message() != expected {
+			t.Errorf("expected %s got error message: %s", expected, mockT.message())
+		}
+	})
+
 	t.Run("Succeeds on non dependencies", func(t *testing.T) {
 		mockT := new(testingT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/testdata/testpackage").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/testdata/nodependency")
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nodependency")
 
 		if mockT.errored() {
-			t.Error("archtest should not fail")
+			t.Fatalf("archtest should not fail")
 		}
 	})
 }
