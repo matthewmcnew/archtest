@@ -65,7 +65,7 @@ func read(packages chan *dep, parent *dep, name string, importCache map[string]s
 
 	pkg, err := context.Import(name, ".", importMode)
 	if err != nil {
-		fmt.Printf("error: %+v", err)
+		fmt.Printf("build import error: %+v", err)
 		return
 	}
 
@@ -89,14 +89,14 @@ func read(packages chan *dep, parent *dep, name string, importCache map[string]s
 
 func expand(ps []string) []string {
 	cfg := &packages.Config{
-		Mode:       packages.LoadFiles,
-		Tests:      true,
+		Mode:       packages.LoadImports,
+		Tests:      false,
 		BuildFlags: []string{},
 	}
 
 	loadedPs, err := packages.Load(cfg, ps...)
 	if err != nil {
-		fmt.Printf("error: %+v", err)
+		fmt.Printf("packages error: %+v", err)
 		return nil
 	}
 
