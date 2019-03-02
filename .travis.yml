@@ -8,7 +8,6 @@ os:
 go:
 - 1.x
 - 1.12
-- 1.11
 - master
 
 matrix:
