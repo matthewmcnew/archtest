@@ -132,9 +132,11 @@ func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}) {
 
 			continue
 		}
+		if pkg.Goroot {
+			continue
+		}
 
 		for _, i := range pkg.Imports {
-			fmt.Printf("%s ---> enque %s\n", d.name, i)
 			queue.PushBack(&dep{name: i, parent: d})
 		}
 
@@ -186,7 +188,6 @@ func (t *PackageTest) expand(ps []string) []string {
 func (t PackageTest) skip(cache map[string]struct{}, pkg string) bool {
 
 	if _, excluded := t.excluding[pkg]; excluded ||
-		strings.HasPrefix(pkg, "internal/") ||
 		pkg == "C" {
 		return true
 	}

@@ -1,10 +1,12 @@
 package testpackage
 
 import (
+	"C"
 	"fmt"
 	"github.com/mattmcnew/archtest/examples/dependency"
+	"runtime/debug"
 )
 
-func init() {
+func What(a debug.BuildInfo) {
 	fmt.Println(dependency.Item)
 }
