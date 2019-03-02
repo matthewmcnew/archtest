@@ -19,21 +19,21 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 	t.Run("Fails on dependencies", func(t *testing.T) {
 		mockT := new(testingT)
 		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependOn("runtime/debug")
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
 
 		assertError(t, mockT,
 			"github.com/mattmcnew/archtest/examples/testpackage",
-			"runtime/debug")
+			"github.com/mattmcnew/archtest/examples/dependency")
 	})
 
 	t.Run("Supports testing against packages in the go root", func(t *testing.T) {
 		mockT := new(testingT)
 		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependOn("runtime/debug")
+			ShouldNotDependOn("crypto")
 
 		assertError(t, mockT,
 			"github.com/mattmcnew/archtest/examples/testpackage",
-			"runtime/debug")
+			"crypto")
 	})
 
 	t.Run("Fails on transative dependencies", func(t *testing.T) {

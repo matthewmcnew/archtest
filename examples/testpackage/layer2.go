@@ -1,12 +1,11 @@
 package testpackage
 
 import (
-	"C"
+	"crypto"
 	"fmt"
 	"github.com/mattmcnew/archtest/examples/dependency"
-	"runtime/debug"
 )
 
-func What(a debug.BuildInfo) {
+func What(a crypto.Decrypter) {
 	fmt.Println(dependency.Item)
 }
