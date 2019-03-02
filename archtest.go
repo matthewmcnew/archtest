@@ -158,7 +158,7 @@ func (t *PackageTest) expand(ps []string) []string {
 	}
 
 	cfg := &packages.Config{
-		Mode:       packages.LoadImports,
+		Mode:       packages.LoadFiles,
 		Tests:      false,
 		BuildFlags: []string{},
 	}
