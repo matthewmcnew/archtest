@@ -11,3 +11,7 @@ go:
 - 1.11
 - master
 
+matrix:
+  exclude:
+  - go: master
+    os: windows
