@@ -8,8 +8,9 @@ import (
 )
 
 type PackageTest struct {
-	packages []string
-	t        TestingT
+	packages     []string
+	t            TestingT
+	includeTests bool
 }
 
 type TestingT interface {
@@ -17,15 +18,20 @@ type TestingT interface {
 }
 
 func Package(t TestingT, packageName ...string) *PackageTest {
-	return &PackageTest{packageName, t}
+	return &PackageTest{packageName, t, false}
 }
 
-func (p *PackageTest) ShouldNotDependOn(d string) {
-	for i := range findDeps(p.packages) {
+func (t PackageTest) IncludeTests() *PackageTest {
+	t.includeTests = true
+	return &t
+}
+
+func (t *PackageTest) ShouldNotDependOn(d string) {
+	for i := range t.findDeps(t.packages) {
 		if i.name == d {
 			chain, _ := i.chain()
 			msg := fmt.Sprintf("Error:\n%s", chain)
-			p.t.Error(msg)
+			t.t.Error(msg)
 		}
 	}
 }
@@ -33,58 +39,103 @@ func (p *PackageTest) ShouldNotDependOn(d string) {
 type dep struct {
 	name   string
 	parent *dep
+	xtest  bool
 }
 
 func (d *dep) chain() (string, int) {
+	name := d.name
+	if d.xtest {
+		name = d.name + "_test"
+	}
+
 	if d.parent == nil {
-		return d.name + "\n", 1
+		return name + "\n", 1
 	}
 
 	c, tabs := d.parent.chain()
 
-	return c + strings.Repeat("\t", tabs) + d.name + "\n", tabs + 1
+	return c + strings.Repeat("\t", tabs) + name + "\n", tabs + 1
 }
 
-func findDeps(packages []string) <-chan *dep {
+func (d dep) asxtest() *dep {
+	d.xtest = true
+	return &d
+}
+
+func (t *PackageTest) findDeps(packages []string) <-chan *dep {
 	c := make(chan *dep)
 	go func() {
 		defer close(c)
 
-		importCache := make(map[string]struct{})
+		importCache := map[string]struct{}{}
 		for _, p := range expand(packages) {
 
-			read(c, &dep{p, nil}, p, importCache)
+			t.read(c, &dep{name: p}, importCache)
 		}
 	}()
 	return c
 }
 
-func read(packages chan *dep, parent *dep, name string, importCache map[string]struct{}) {
+func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}) {
 	context := build.Default
 	var importMode build.ImportMode
 
-	pkg, err := context.Import(name, ".", importMode)
+	pkg, err := context.Import(d.name, ".", importMode)
 	if err != nil {
 		fmt.Printf("build import error: %+v", err)
 		return
 	}
 
-	newImports := make([]string, 0, len(pkg.Imports))
+	newImports := make([]*dep, 0, len(pkg.Imports)+len(pkg.TestImports)+len(pkg.XTestImports))
+
 	for _, i := range pkg.Imports {
-		if _, seen := importCache[i]; seen {
+		if skip(cache, i) {
 			continue
 		}
-		newImports = append(newImports, i)
-		importCache[i] = struct{}{}
+
+		dep := &dep{name: i, parent: d}
+		cache[dep.name] = struct{}{}
+		pChan <- dep
+		newImports = append(newImports, dep)
 	}
 
-	for _, i := range newImports {
-		packages <- &dep{i, parent}
+	if t.includeTests {
+		for _, i := range pkg.TestImports {
+			if skip(cache, i) {
+				continue
+			}
+
+			dep := &dep{name: i, parent: d}
+			cache[dep.name] = struct{}{}
+			pChan <- dep
+			newImports = append(newImports, dep)
+		}
+
+		for _, i := range pkg.XTestImports {
+			if skip(cache, i) {
+				continue
+			}
+
+			dep := &dep{name: i, parent: d.asxtest()}
+			cache[dep.name] = struct{}{}
+			pChan <- dep
+			newImports = append(newImports, dep)
+		}
+
 	}
 
-	for _, i := range newImports {
-		read(packages, &dep{i, parent}, i, importCache)
+	for _, v := range newImports {
+		t.read(pChan, v, cache)
 	}
+}
+
+func skip(cache map[string]struct{}, pkg string) bool {
+	if strings.HasPrefix(pkg, "internal/") || pkg == "C" {
+		return true
+	}
+
+	_, seen := cache[pkg]
+	return seen
 }
 
 func expand(ps []string) []string {
