@@ -27,7 +27,7 @@ func (t PackageTest) IncludeTests() *PackageTest {
 }
 
 func (t *PackageTest) ShouldNotDependOn(d ...string) {
-	dl := expand(d)
+	dl := t.expand(d)
 
 	for i := range t.findDeps(t.packages) {
 		if contains(dl, i.name) {
@@ -70,7 +70,7 @@ func (t *PackageTest) findDeps(packages []string) <-chan *dep {
 		defer close(c)
 
 		importCache := map[string]struct{}{}
-		for _, p := range expand(packages) {
+		for _, p := range t.expand(packages) {
 
 			t.read(c, &dep{name: p}, importCache)
 		}
@@ -84,7 +84,8 @@ func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}) {
 
 	pkg, err := context.Import(d.name, ".", importMode)
 	if err != nil {
-		fmt.Printf("build import error: %+v", err)
+		e := fmt.Sprintf("Error reading: %s", d.name)
+		t.t.Error(e)
 		return
 	}
 
@@ -131,16 +132,11 @@ func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}) {
 	}
 }
 
-func skip(cache map[string]struct{}, pkg string) bool {
-	if strings.HasPrefix(pkg, "internal/") || pkg == "C" {
-		return true
+func (t *PackageTest) expand(ps []string) []string {
+	if !needExpansion(ps) {
+		return ps
 	}
 
-	_, seen := cache[pkg]
-	return seen
-}
-
-func expand(ps []string) []string {
 	cfg := &packages.Config{
 		Mode:       packages.LoadImports,
 		Tests:      false,
@@ -149,8 +145,15 @@ func expand(ps []string) []string {
 
 	loadedPs, err := packages.Load(cfg, ps...)
 	if err != nil {
-		fmt.Printf("packages error: %+v", err)
+		e := fmt.Sprintf("Error reading: %s, err: %s", ps, err)
+		t.t.Error(e)
 		return nil
+	}
+	if len(loadedPs) == 0 {
+		e := fmt.Sprintf("Error reading: %s, did not match any packages", ps)
+		t.t.Error(e)
+		return nil
+
 	}
 
 	ls := make([]string, 0, len(loadedPs))
@@ -160,6 +163,24 @@ func expand(ps []string) []string {
 	}
 
 	return ls
+}
+
+func skip(cache map[string]struct{}, pkg string) bool {
+	if strings.HasPrefix(pkg, "internal/") || pkg == "C" {
+		return true
+	}
+
+	_, seen := cache[pkg]
+	return seen
+}
+
+func needExpansion(ps []string) bool {
+	for _, p := range ps {
+		if strings.Contains(p, "...") {
+			return true
+		}
+	}
+	return false
 }
 
 func contains(s []string, e string) bool {

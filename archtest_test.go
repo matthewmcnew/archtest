@@ -95,6 +95,26 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 			"github.com/mattmcnew/archtest/examples/testfiledeps/testpkgdependency",
 		)
 	})
+
+	t.Run("Fails on packages that do not exist", func(t *testing.T) {
+		mockT := new(testingT)
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/dontexist/sorry").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+
+		assertError(t, mockT)
+
+		mockT = new(testingT)
+		archtest.Package(mockT, "DONT__WORK").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+
+		assertError(t, mockT)
+
+		mockT = new(testingT)
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/dontexist/...").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+
+		assertError(t, mockT)
+	})
 }
 
 func assertNoError(t *testing.T, mockT *testingT) {
