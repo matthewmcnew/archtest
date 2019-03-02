@@ -40,7 +40,7 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 	t.Run("Supports multiple packages at once", func(t *testing.T) {
 		mockT := new(testingT)
 		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/dontdependonanything", "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nodependency", "github.com/mattmcnew/archtest/examples/dependency")
 
 		assertError(t, mockT,
 			"github.com/mattmcnew/archtest/examples/testpackage",
@@ -54,8 +54,8 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 
 		assertNoError(t, mockT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/...").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nesteddependency")
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/nested/...").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/...")
 
 		assertError(t, mockT, "github.com/mattmcnew/archtest/examples/testpackage/nested/dep", "github.com/mattmcnew/archtest/examples/nesteddependency")
 	})

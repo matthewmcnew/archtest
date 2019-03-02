@@ -26,9 +26,11 @@ func (t PackageTest) IncludeTests() *PackageTest {
 	return &t
 }
 
-func (t *PackageTest) ShouldNotDependOn(d string) {
+func (t *PackageTest) ShouldNotDependOn(d ...string) {
+	dl := expand(d)
+
 	for i := range t.findDeps(t.packages) {
-		if i.name == d {
+		if contains(dl, i.name) {
 			chain, _ := i.chain()
 			msg := fmt.Sprintf("Error:\n%s", chain)
 			t.t.Error(msg)
@@ -158,4 +160,13 @@ func expand(ps []string) []string {
 	}
 
 	return ls
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
