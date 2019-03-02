@@ -96,6 +96,27 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 		)
 	})
 
+	t.Run("Supports excluding packages", func(t *testing.T) {
+		mockT := new(testingT)
+
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/nested/dep").
+			Excluding("github.com/mattmcnew/archtest/examples/testpackage/nested/dep").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nesteddependency")
+
+		assertNoError(t, mockT)
+	})
+
+	t.Run("Excluded packages excludes transative packages", func(t *testing.T) {
+		mockT := new(testingT)
+
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
+			Excluding("github.com/this/is/verifying/multiple/exclusions", "github.com/mattmcnew/archtest/examples/...").
+			Excluding("github.com/this/is/verifying/chaining").
+			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/transative")
+
+		assertNoError(t, mockT)
+	})
+
 	t.Run("Fails on packages that do not exist", func(t *testing.T) {
 		mockT := new(testingT)
 		archtest.Package(mockT, "github.com/mattmcnew/archtest/dontexist/sorry").
@@ -120,7 +141,7 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 func assertNoError(t *testing.T, mockT *testingT) {
 	t.Helper()
 	if mockT.errored() {
-		t.Fatal("archtest should not have failed")
+		t.Fatalf("archtest should not have failed but, %s", mockT.message())
 	}
 }
 

@@ -1,6 +1,7 @@
 package archtest
 
 import (
+	"container/list"
 	"fmt"
 	"go/build"
 	"golang.org/x/tools/go/packages"
@@ -9,6 +10,7 @@ import (
 
 type PackageTest struct {
 	packages     []string
+	excluding    map[string]interface{}
 	t            TestingT
 	includeTests bool
 }
@@ -18,7 +20,7 @@ type TestingT interface {
 }
 
 func Package(t TestingT, packageName ...string) *PackageTest {
-	return &PackageTest{packageName, t, false}
+	return &PackageTest{packages: packageName, t: t, includeTests: false}
 }
 
 func (t PackageTest) IncludeTests() *PackageTest {
@@ -26,11 +28,26 @@ func (t PackageTest) IncludeTests() *PackageTest {
 	return &t
 }
 
+func (t PackageTest) Excluding(e ...string) *PackageTest {
+	set := make(map[string]interface{})
+
+	for v := range t.excluding {
+		set[v] = struct{}{}
+	}
+
+	for _, v := range t.expand(e) {
+		set[v] = struct{}{}
+	}
+
+	t.excluding = set
+	return &t
+}
+
 func (t *PackageTest) ShouldNotDependOn(d ...string) {
 	dl := t.expand(d)
 
 	for i := range t.findDeps(t.packages) {
-		if contains(dl, i.name) {
+		if i.isDependencyOn(dl) {
 			chain, _ := i.chain()
 			msg := fmt.Sprintf("Error:\n%s", chain)
 			t.t.Error(msg)
@@ -64,6 +81,17 @@ func (d dep) asxtest() *dep {
 	return &d
 }
 
+func (d *dep) isDependencyOn(dl []string) bool {
+	if d.parent == nil {
+		return false
+	}
+
+	if contains(dl, d.name) {
+		return true
+	}
+	return false
+}
+
 func (t *PackageTest) findDeps(packages []string) <-chan *dep {
 	c := make(chan *dep)
 	go func() {
@@ -72,63 +100,53 @@ func (t *PackageTest) findDeps(packages []string) <-chan *dep {
 		importCache := map[string]struct{}{}
 		for _, p := range t.expand(packages) {
 
-			t.read(c, &dep{name: p}, importCache)
+			t.read(c, &dep{name: p, parent: nil}, importCache)
 		}
 	}()
 	return c
 }
 
 func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}) {
+	queue := list.New()
+
 	context := build.Default
 	var importMode build.ImportMode
 
-	pkg, err := context.Import(d.name, ".", importMode)
-	if err != nil {
-		e := fmt.Sprintf("Error reading: %s", d.name)
-		t.t.Error(e)
-		return
-	}
+	queue.PushBack(d)
+	for queue.Len() > 0 {
+		front := queue.Front()
+		queue.Remove(front)
+		d, _ := (front.Value).(*dep)
 
-	newImports := make([]*dep, 0, len(pkg.Imports)+len(pkg.TestImports)+len(pkg.XTestImports))
-
-	for _, i := range pkg.Imports {
-		if skip(cache, i) {
+		if t.skip(cache, d.name) {
 			continue
 		}
 
-		dep := &dep{name: i, parent: d}
-		cache[dep.name] = struct{}{}
-		pChan <- dep
-		newImports = append(newImports, dep)
-	}
+		cache[d.name] = struct{}{}
+		pChan <- d
 
-	if t.includeTests {
-		for _, i := range pkg.TestImports {
-			if skip(cache, i) {
-				continue
-			}
+		pkg, err := context.Import(d.name, ".", importMode)
+		if err != nil {
+			e := fmt.Sprintf("Error reading: %s", d.name)
+			t.t.Error(e)
 
-			dep := &dep{name: i, parent: d}
-			cache[dep.name] = struct{}{}
-			pChan <- dep
-			newImports = append(newImports, dep)
+			continue
 		}
 
-		for _, i := range pkg.XTestImports {
-			if skip(cache, i) {
-				continue
-			}
-
-			dep := &dep{name: i, parent: d.asxtest()}
-			cache[dep.name] = struct{}{}
-			pChan <- dep
-			newImports = append(newImports, dep)
+		for _, i := range pkg.Imports {
+			fmt.Printf("%s ---> enque %s\n", d.name, i)
+			queue.PushBack(&dep{name: i, parent: d})
 		}
 
-	}
+		if t.includeTests {
+			for _, i := range pkg.TestImports {
+				queue.PushBack(&dep{name: i, parent: d})
+			}
 
-	for _, v := range newImports {
-		t.read(pChan, v, cache)
+			for _, i := range pkg.XTestImports {
+				queue.PushBack(&dep{name: i, parent: d.asxtest()})
+			}
+		}
 	}
 }
 
@@ -165,13 +183,17 @@ func (t *PackageTest) expand(ps []string) []string {
 	return ls
 }
 
-func skip(cache map[string]struct{}, pkg string) bool {
-	if strings.HasPrefix(pkg, "internal/") || pkg == "C" {
+func (t PackageTest) skip(cache map[string]struct{}, pkg string) bool {
+
+	if _, excluded := t.excluding[pkg]; excluded ||
+		strings.HasPrefix(pkg, "internal/") ||
+		pkg == "C" {
 		return true
 	}
 
 	_, seen := cache[pkg]
 	return seen
+
 }
 
 func needExpansion(ps []string) bool {
