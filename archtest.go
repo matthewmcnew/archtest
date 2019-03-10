@@ -43,10 +43,23 @@ func (t PackageTest) Excluding(e ...string) *PackageTest {
 	return &t
 }
 
-func (t *PackageTest) ShouldNotDependOn(d ...string) {
-	dl := t.expand(d)
+func (t PackageTest) ShouldNotDependDirectlyOn(pkgs ...string) {
+	t.shouldNotDependOnPackageWithFilter(func(d *dep) bool {
+		return d.depth() > 1
+	}, pkgs)
+}
 
+func (t *PackageTest) ShouldNotDependOn(pkgs ...string) {
+	t.shouldNotDependOnPackageWithFilter(noOpFilter, pkgs)
+}
+
+func (t *PackageTest) shouldNotDependOnPackageWithFilter(filter depFilter, d []string) {
+	dl := t.expand(d)
 	for i := range t.findDeps(t.packages) {
+		if filter(i) {
+			continue
+		}
+
 		if i.isDependencyOn(dl) {
 			chain, _ := i.chain()
 			msg := fmt.Sprintf("Error:\n%s", chain)
@@ -55,10 +68,23 @@ func (t *PackageTest) ShouldNotDependOn(d ...string) {
 	}
 }
 
+type depFilter func(*dep) bool
+
+var noOpFilter depFilter = func(i *dep) bool {
+	return false
+}
+
 type dep struct {
 	name   string
 	parent *dep
 	xtest  bool
+}
+
+func (d *dep) depth() int {
+	if d.parent == nil {
+		return 0
+	}
+	return d.parent.depth() + 1
 }
 
 func (d *dep) chain() (string, int) {

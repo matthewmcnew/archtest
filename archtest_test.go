@@ -148,6 +148,27 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 	})
 }
 
+func TestPackage_ShouldNotDependDirectly(t *testing.T) {
+
+	t.Run("Fails on direct dependencies", func(t *testing.T) {
+		mockT := new(testingT)
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
+			ShouldNotDependDirectlyOn("github.com/mattmcnew/archtest/examples/dependency")
+
+		assertError(t, mockT,
+			"github.com/mattmcnew/archtest/examples/testpackage",
+			"github.com/mattmcnew/archtest/examples/dependency")
+	})
+
+	t.Run("Fails on transative dependencies", func(t *testing.T) {
+		mockT := new(testingT)
+		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
+			ShouldNotDependDirectlyOn("github.com/mattmcnew/archtest/examples/transative")
+
+		assertNoError(t, mockT)
+	})
+}
+
 func assertNoError(t *testing.T, mockT *testingT) {
 	t.Helper()
 	if mockT.errored() {
