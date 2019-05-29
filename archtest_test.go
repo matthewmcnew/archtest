@@ -1,7 +1,7 @@
 package archtest_test
 
 import (
-	"github.com/mattmcnew/archtest"
+	"github.com/matthewmcnew/archtest"
 	"strings"
 	"testing"
 )
@@ -10,108 +10,108 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 
 	t.Run("Succeeds on non dependencies", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nodependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/nodependency")
 
 		assertNoError(t, mockT)
 	})
 
 	t.Run("Fails on dependencies", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/dependency")
 
 		assertError(t, mockT,
-			"github.com/mattmcnew/archtest/examples/testpackage",
-			"github.com/mattmcnew/archtest/examples/dependency")
+			"github.com/matthewmcnew/archtest/examples/testpackage",
+			"github.com/matthewmcnew/archtest/examples/dependency")
 	})
 
 	t.Run("Supports testing against packages in the go root", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage").
 			ShouldNotDependOn("crypto")
 
 		assertError(t, mockT,
-			"github.com/mattmcnew/archtest/examples/testpackage",
+			"github.com/matthewmcnew/archtest/examples/testpackage",
 			"crypto")
 	})
 
 	t.Run("Fails on transative dependencies", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/transative")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/transative")
 
 		assertError(t, mockT,
-			"github.com/mattmcnew/archtest/examples/testpackage",
-			"github.com/mattmcnew/archtest/examples/dependency",
-			"github.com/mattmcnew/archtest/examples/transative")
+			"github.com/matthewmcnew/archtest/examples/testpackage",
+			"github.com/matthewmcnew/archtest/examples/dependency",
+			"github.com/matthewmcnew/archtest/examples/transative")
 	})
 
 	t.Run("Supports multiple packages at once", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/dontdependonanything", "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nodependency", "github.com/mattmcnew/archtest/examples/dependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/dontdependonanything", "github.com/matthewmcnew/archtest/examples/testpackage").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/nodependency", "github.com/matthewmcnew/archtest/examples/dependency")
 
 		assertError(t, mockT,
-			"github.com/mattmcnew/archtest/examples/testpackage",
-			"github.com/mattmcnew/archtest/examples/dependency")
+			"github.com/matthewmcnew/archtest/examples/testpackage",
+			"github.com/matthewmcnew/archtest/examples/dependency")
 	})
 
 	t.Run("Supports wildcard matching", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/...").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nodependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/...").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/nodependency")
 
 		assertNoError(t, mockT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/nested/...").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/...")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage/nested/...").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/...")
 
-		assertError(t, mockT, "github.com/mattmcnew/archtest/examples/testpackage/nested/dep", "github.com/mattmcnew/archtest/examples/nesteddependency")
+		assertError(t, mockT, "github.com/matthewmcnew/archtest/examples/testpackage/nested/dep", "github.com/matthewmcnew/archtest/examples/nesteddependency")
 	})
 
 	t.Run("Supports checking imports in test files", func(t *testing.T) {
 		mockT := new(testingT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/...").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/testfiledeps/testonlydependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage/...").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/testfiledeps/testonlydependency")
 
 		assertNoError(t, mockT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/...").
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage/...").
 			IncludeTests().
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/testfiledeps/testonlydependency")
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/testfiledeps/testonlydependency")
 
 		assertError(t, mockT,
-			"github.com/mattmcnew/archtest/examples/testpackage/nested/dep",
-			"github.com/mattmcnew/archtest/examples/testfiledeps/testonlydependency",
+			"github.com/matthewmcnew/archtest/examples/testpackage/nested/dep",
+			"github.com/matthewmcnew/archtest/examples/testfiledeps/testonlydependency",
 		)
 	})
 
 	t.Run("Supports checking imports from test packages", func(t *testing.T) {
 		mockT := new(testingT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/...").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/testfiledeps/testpkgdependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage/...").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/testfiledeps/testpkgdependency")
 
 		assertNoError(t, mockT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/...").
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage/...").
 			IncludeTests().
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/testfiledeps/testpkgdependency")
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/testfiledeps/testpkgdependency")
 
 		assertError(t, mockT,
-			"github.com/mattmcnew/archtest/examples/testpackage/nested/dep_test",
-			"github.com/mattmcnew/archtest/examples/testfiledeps/testpkgdependency",
+			"github.com/matthewmcnew/archtest/examples/testpackage/nested/dep_test",
+			"github.com/matthewmcnew/archtest/examples/testfiledeps/testpkgdependency",
 		)
 	})
 
 	t.Run("Supports Ignoring packages", func(t *testing.T) {
 		mockT := new(testingT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/nested/dep").
-			Ignoring("github.com/mattmcnew/archtest/examples/testpackage/nested/dep").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nesteddependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage/nested/dep").
+			Ignoring("github.com/matthewmcnew/archtest/examples/testpackage/nested/dep").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/nesteddependency")
 
 		assertNoError(t, mockT)
 	})
@@ -119,30 +119,30 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 	t.Run("Ignored packages ignores ignored transitive packages", func(t *testing.T) {
 		mockT := new(testingT)
 
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			Ignoring("github.com/this/is/verifying/multiple/exclusions", "github.com/mattmcnew/archtest/examples/...").
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage").
+			Ignoring("github.com/this/is/verifying/multiple/exclusions", "github.com/matthewmcnew/archtest/examples/...").
 			Ignoring("github.com/this/is/verifying/chaining").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/transative")
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/transative")
 
 		assertNoError(t, mockT)
 	})
 
 	t.Run("Fails on packages that do not exist", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/dontexist/sorry").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/dontexist/sorry").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/dependency")
 
 		assertError(t, mockT)
 
 		mockT = new(testingT)
 		archtest.Package(mockT, "DONT__WORK").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/dependency")
 
 		assertError(t, mockT)
 
 		mockT = new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/dontexist/...").
-			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/dependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/dontexist/...").
+			ShouldNotDependOn("github.com/matthewmcnew/archtest/examples/dependency")
 
 		assertError(t, mockT)
 	})
@@ -152,18 +152,18 @@ func TestPackage_ShouldNotDependDirectly(t *testing.T) {
 
 	t.Run("Fails on direct dependencies", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependDirectlyOn("github.com/mattmcnew/archtest/examples/dependency")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage").
+			ShouldNotDependDirectlyOn("github.com/matthewmcnew/archtest/examples/dependency")
 
 		assertError(t, mockT,
-			"github.com/mattmcnew/archtest/examples/testpackage",
-			"github.com/mattmcnew/archtest/examples/dependency")
+			"github.com/matthewmcnew/archtest/examples/testpackage",
+			"github.com/matthewmcnew/archtest/examples/dependency")
 	})
 
 	t.Run("Fails on transative dependencies", func(t *testing.T) {
 		mockT := new(testingT)
-		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			ShouldNotDependDirectlyOn("github.com/mattmcnew/archtest/examples/transative")
+		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage").
+			ShouldNotDependDirectlyOn("github.com/matthewmcnew/archtest/examples/transative")
 
 		assertNoError(t, mockT)
 	})

@@ -3,7 +3,7 @@ package testpackage
 import (
 	"crypto"
 	"fmt"
-	"github.com/mattmcnew/archtest/examples/dependency"
+	"github.com/matthewmcnew/archtest/examples/dependency"
 )
 
 func What(a crypto.Decrypter) {

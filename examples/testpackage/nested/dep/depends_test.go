@@ -1,7 +1,7 @@
 package dep
 
 import (
-	"github.com/mattmcnew/archtest/examples/testfiledeps/testonlydependency"
+	"github.com/matthewmcnew/archtest/examples/testfiledeps/testonlydependency"
 	"testing"
 )
 

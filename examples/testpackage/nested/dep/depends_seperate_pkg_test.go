@@ -1,7 +1,7 @@
 package dep_test
 
 import (
-	"github.com/mattmcnew/archtest/examples/testfiledeps/testpkgdependency"
+	"github.com/matthewmcnew/archtest/examples/testfiledeps/testpkgdependency"
 	"testing"
 )
 

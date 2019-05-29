@@ -1,7 +1,7 @@
 package nesteddependency
 
 import "fmt"
-import "github.com/mattmcnew/archtest/examples/transative"
+import "github.com/matthewmcnew/archtest/examples/transative"
 
 const Item = "depend on me"
 

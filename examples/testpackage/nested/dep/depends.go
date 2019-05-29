@@ -2,7 +2,7 @@ package dep
 
 import (
 	"fmt"
-	"github.com/mattmcnew/archtest/examples/nesteddependency"
+	"github.com/matthewmcnew/archtest/examples/nesteddependency"
 )
 
 func init() {
