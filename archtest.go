@@ -10,7 +10,7 @@ import (
 
 type PackageTest struct {
 	packages     []string
-	excluding    map[string]interface{}
+	ignored      map[string]interface{}
 	t            TestingT
 	includeTests bool
 }
@@ -28,10 +28,10 @@ func (t PackageTest) IncludeTests() *PackageTest {
 	return &t
 }
 
-func (t PackageTest) Excluding(e ...string) *PackageTest {
+func (t PackageTest) Ignoring(e ...string) *PackageTest {
 	set := make(map[string]interface{})
 
-	for v := range t.excluding {
+	for v := range t.ignored {
 		set[v] = struct{}{}
 	}
 
@@ -39,7 +39,7 @@ func (t PackageTest) Excluding(e ...string) *PackageTest {
 		set[v] = struct{}{}
 	}
 
-	t.excluding = set
+	t.ignored = set
 	return &t
 }
 
@@ -213,7 +213,7 @@ func (t *PackageTest) expand(ps []string) []string {
 
 func (t PackageTest) skip(cache map[string]struct{}, pkg string) bool {
 
-	if _, excluded := t.excluding[pkg]; excluded ||
+	if _, excluded := t.ignored[pkg]; excluded ||
 		pkg == "C" {
 		return true
 	}

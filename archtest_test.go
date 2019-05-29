@@ -106,22 +106,22 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 		)
 	})
 
-	t.Run("Supports excluding packages", func(t *testing.T) {
+	t.Run("Supports Ignoring packages", func(t *testing.T) {
 		mockT := new(testingT)
 
 		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage/nested/dep").
-			Excluding("github.com/mattmcnew/archtest/examples/testpackage/nested/dep").
+			Ignoring("github.com/mattmcnew/archtest/examples/testpackage/nested/dep").
 			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/nesteddependency")
 
 		assertNoError(t, mockT)
 	})
 
-	t.Run("Excluded packages excludes transative packages", func(t *testing.T) {
+	t.Run("Ignored packages ignores ignored transitive packages", func(t *testing.T) {
 		mockT := new(testingT)
 
 		archtest.Package(mockT, "github.com/mattmcnew/archtest/examples/testpackage").
-			Excluding("github.com/this/is/verifying/multiple/exclusions", "github.com/mattmcnew/archtest/examples/...").
-			Excluding("github.com/this/is/verifying/chaining").
+			Ignoring("github.com/this/is/verifying/multiple/exclusions", "github.com/mattmcnew/archtest/examples/...").
+			Ignoring("github.com/this/is/verifying/chaining").
 			ShouldNotDependOn("github.com/mattmcnew/archtest/examples/transative")
 
 		assertNoError(t, mockT)
