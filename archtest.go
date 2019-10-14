@@ -55,11 +55,7 @@ func (t *PackageTest) ShouldNotDependOn(pkgs ...string) {
 
 func (t *PackageTest) shouldNotDependOnPackageWithFilter(filter depFilter, d []string) {
 	dl := t.expand(d)
-	for i := range t.findDeps(t.packages) {
-		if filter(i) {
-			continue
-		}
-
+	for i := range t.findDeps(t.packages, filter) {
 		if i.isDependencyOn(dl) {
 			chain, _ := i.chain()
 			msg := fmt.Sprintf("Error:\n%s", chain)
@@ -118,7 +114,7 @@ func (d *dep) isDependencyOn(dl []string) bool {
 	return false
 }
 
-func (t *PackageTest) findDeps(packages []string) <-chan *dep {
+func (t PackageTest) findDeps(packages []string, filter depFilter) <-chan *dep {
 	c := make(chan *dep)
 	go func() {
 		defer close(c)
@@ -126,13 +122,13 @@ func (t *PackageTest) findDeps(packages []string) <-chan *dep {
 		importCache := map[string]struct{}{}
 		for _, p := range t.expand(packages) {
 
-			t.read(c, &dep{name: p, parent: nil}, importCache)
+			t.read(c, &dep{name: p, parent: nil}, importCache, filter)
 		}
 	}()
 	return c
 }
 
-func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}) {
+func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}, filter depFilter) {
 	queue := list.New()
 
 	context := build.Default
@@ -144,7 +140,7 @@ func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}) {
 		queue.Remove(front)
 		d, _ := (front.Value).(*dep)
 
-		if t.skip(cache, d.name) {
+		if t.skip(cache, d.name) || filter(d) {
 			continue
 		}
 
@@ -178,7 +174,7 @@ func (t *PackageTest) read(pChan chan *dep, d *dep, cache map[string]struct{}) {
 	}
 }
 
-func (t *PackageTest) expand(ps []string) []string {
+func (t PackageTest) expand(ps []string) []string {
 	if !needExpansion(ps) {
 		return ps
 	}
