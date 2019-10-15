@@ -116,7 +116,7 @@ func TestPackage_ShouldNotDependOn(t *testing.T) {
 		assertNoError(t, mockT)
 	})
 
-	t.Run("Ignored packages ignores ignored transitive packages", func(t *testing.T) {
+	t.Run("Ignored packages ignore ignored transitive packages", func(t *testing.T) {
 		mockT := new(testingT)
 
 		archtest.Package(mockT, "github.com/matthewmcnew/archtest/examples/testpackage").
